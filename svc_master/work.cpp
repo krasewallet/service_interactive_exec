@@ -2,13 +2,30 @@
 #include <tchar.h>
 #include <wtsapi32.h>
 #include <userenv.h>
-#include "log.h"
+#include <string>
 
 #pragma comment(lib, "wtsapi32")
 #pragma comment(lib, "userenv")
 
+#ifdef _TCHAR_DEFINED
+#define _tstring wstring
+#elif
+#define _tstring string
+#endif
+
+using namespace std;
+
 DWORD SvcWork()
 {
+	TCHAR szPath[MAX_PATH];
+	GetModuleFileName(NULL, szPath, MAX_PATH);
+	_tstring curPath = _tstring(szPath);
+	int dirPos = curPath.rfind(L"\\");
+	int suffixPos = curPath.rfind(L".");
+	_tstring iniPath = curPath.substr(0, dirPos) + curPath.substr(dirPos, suffixPos - dirPos) + L".ini";
+	TCHAR command[512];
+	GetPrivateProfileString(L"service", L"command", L"", command, 512, iniPath.c_str());
+
     DWORD dwSessionId = WTSGetActiveConsoleSessionId();
 	DWORD dwCreationFlags = NULL;
 
@@ -69,7 +86,7 @@ DWORD SvcWork()
 			lpEnvironment = NULL;
 		}
 
-		LPTSTR szCmdline = _tcsdup(_T("D:\\Repo\\git\\IBUILDER_REPO\\build\\cyzhkt\\ZHKTLauncher.exe"));
+		LPTSTR szCmdline = _tcsdup(command);
 
 		CreateProcessAsUser(hUserTokenDup,
 			NULL,
